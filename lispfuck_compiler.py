@@ -53,19 +53,15 @@ parser = ox.make_parser([
     ('operator : NUMBER', operator),
 ], tokens)
 
-#Defining tape of lispf_ck and necessary pointers
-tape = [0]
-ptr = 0
-breakpoints = []
-
 #Enter the file
 @click.command()
-@click.argument('program', type=click.File('r'))
+@click.argument('lispf_ck',type=click.File('r'))
+@click.option('-o', nargs=1, type=click.File('w'))
 
 #Constructor
-def constructor(program):
+def constructor(lispf_ck, o):
     #Reading the program
-    source = program.read()
+    source = lispf_ck.read()
 
     print("\nSource Code : ")
     print(source)
@@ -80,60 +76,80 @@ def constructor(program):
 
     #Generating tree
     tree = parser(parser_tokens)
-    print("\nTree : \n")
-    print(tree)
 
-    #printing result of interpretation
-    print("\n\nResult: \n")
-    value = eval(tree, ptr)
+    brain_code = ''
+    brain_code = eval(tree, brain_code)
 
-    print(value)
+    o.write(brain_code)
 
 dictionary = {}
 
-def eval(ast, ptr):
+def add(value, brain_code):
+    for i in range(0,value):
+        brain_code = brain_code + '+'
+    return brain_code
+
+def subtract(value, brain_code):
+    for i in range(0,value):
+        brain_code = brain_code + '-'
+    return brain_code
+
+def eval(ast, brain_code):
 
     #Running ast nodes
     for node in ast:
         #Defining actions in tape
         if node[0] == 'add':
-            tape[ptr] = (tape[ptr] + int(node[1])) % 256
+            brain_code = add(int(ast[1]), brain_code)
+
         elif node[0] == 'sub':
-            tape[ptr] = (tape[ptr] - int(node[1])) % 256
+            brain_code = subtract(int(source[1]), final_code)
+
         elif node == 'inc':
-            tape[ptr] = (tape[ptr] + 1) % 256
+            brain_code = brain_code + '+'
+
         elif node == 'dec':
-            tape[ptr] = (tape[ptr] - 1) % 256
+            brain_code = brain_code + '-'
+
         elif node == 'right':
-            ptr += 1
-            if ptr == len(tape):
-                tape.append(0)
+            brain_code = brain_code + '>'
+
         elif node == 'left':
-            ptr -= 1
+            brain_code = brain_code + '<'
+
         elif node == 'print':
-            print(chr(tape[ptr]), end='')
+            brain_code = brain_code + '.'
+
         elif node == 'read':
-            tape[ptr] = ord(getche())
+            brain_code = brain_code + ','
+
         elif node[0] == 'loop':
-            if tape[ptr]!= 0:
-                i = 1
-                while i < len(node):
-                    eval(node,ptr)
-                    i = i + 1
-                    if tape[ptr] == 0:
-                        break
+            brain_code = brain_code + '['
+            brain_code = eval(ast[1:len(ast)], brain_code)
+            brain_code = brain_code + ']'
+
         elif node[0] == 'do-after':
-            _,cmd,command_list = node
-            expansion = ['do']
-            for command in command_list:
-                expansion.extend([command, cmd])
-            eval(tuple(expansion), ptr)
+            i = 0
+            while i < len(ast[2]):
+                lis = ['do', ast[1], ast[2][i]]
+                brain_code = eval(lis, brain_code)
+                i = i + 1
+
         elif node[0] == 'do-before':
-            _,cmd,command_list = node
-            expansion = ['do']
-            for command in command_list:
-                expansion.extend([cmd, command])
-            eval(tuple(expansion), ptr)
+            i = 0
+            while i < len(ast[2]):
+                lis = ['do', ast[2][i], ast[1]]
+                brain_code = eval(lis, brain_code)
+                i = i + 1
+
+        elif node[0] == 'def':
+            dictionary[node[1]] = [node[2], node[3]]
+
+        elif node in dictionary:
+            lis = dictionary[node][1]
+            eval(lis, brain_code)
+
+    return brain_code
 
 if __name__ == '__main__':
    constructor()
