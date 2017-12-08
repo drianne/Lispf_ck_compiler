@@ -63,13 +63,8 @@ def constructor(lispf_ck, o):
     #Reading the program
     source = lispf_ck.read()
 
-    print("\nSource Code : ")
-    print(source)
-
     #Geting tokens of source code
     tokens = lexer(source)
-    print("\nTokens:\n ")
-    print(tokens)
 
     #Removing comments and spaces of tokens to make the tree
     parser_tokens = [token for token in tokens if token.type != 'COMMENT' and token.type != 'SPACE']
@@ -83,6 +78,8 @@ def constructor(lispf_ck, o):
     o.write(brain_code)
 
 dictionary = {}
+
+#Defining main functions
 
 def add(value, brain_code):
     for i in range(0,value):
@@ -98,12 +95,17 @@ def eval(ast, brain_code):
 
     #Running ast nodes
     for node in ast:
-        #Defining actions in tape
-        if node[0] == 'add':
+
+        #Defining actions to compiler
+
+        if isinstance(node, tuple):
+            brain_code = eval(node, brain_code)
+
+        elif node == 'add':
             brain_code = add(int(ast[1]), brain_code)
 
-        elif node[0] == 'sub':
-            brain_code = subtract(int(source[1]), final_code)
+        elif node == 'sub':
+            brain_code = subtract(int(ast[1]), brain_code)
 
         elif node == 'inc':
             brain_code = brain_code + '+'
@@ -123,31 +125,34 @@ def eval(ast, brain_code):
         elif node == 'read':
             brain_code = brain_code + ','
 
-        elif node[0] == 'loop':
+        elif node == 'loop':
             brain_code = brain_code + '['
             brain_code = eval(ast[1:len(ast)], brain_code)
             brain_code = brain_code + ']'
+            break
 
-        elif node[0] == 'do-after':
+        elif node == 'do-after':
             i = 0
             while i < len(ast[2]):
-                lis = ['do', ast[1], ast[2][i]]
+                lis = ('do', ast[2][i], ast[1])
                 brain_code = eval(lis, brain_code)
                 i = i + 1
+            break
 
-        elif node[0] == 'do-before':
+        elif node == 'do-before':
             i = 0
             while i < len(ast[2]):
-                lis = ['do', ast[2][i], ast[1]]
+                lis = ('do', ast[1], ast[2][i])
                 brain_code = eval(lis, brain_code)
                 i = i + 1
+            break
 
-        elif node[0] == 'def':
-            dictionary[node[1]] = [node[2], node[3]]
+        elif node == 'def':
+            dictionary[ast[1]] = (ast[2], ast[3])
 
         elif node in dictionary:
             lis = dictionary[node][1]
-            eval(lis, brain_code)
+            brain_code = eval(lis, brain_code)
 
     return brain_code
 
